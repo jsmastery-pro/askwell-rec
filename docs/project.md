@@ -54,17 +54,17 @@ The whole product in one flow. When this works end to end, the product is done.
 
 ## 4. Environments
 
-| Environment | What it is                                                        | Who deploys                       |
-| ----------- | ----------------------------------------------------------------- | --------------------------------- |
-| `main`      | The real app on InstaCloud                                        | Product owner only, after a merge |
-| `bob`       | InstaCloud branch: a copy of `main` with its own database and URL | Bob                               |
-| `alice`     | InstaCloud branch: same, for Alice                                | Alice                             |
+| Environment | What it is                                                        | Who deploys                                            |
+| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| `main`      | The real app on InstaCloud                                        | John, after a merge, with the product owner's approval |
+| `bob`       | InstaCloud branch: a copy of `main` with its own database and URL | Bob                                                    |
+| `alice`     | InstaCloud branch: same, for Alice                                | Alice                                                  |
 
-| Rule                     | Detail                                                                                       |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| One app in the end       | Branches are temporary copies. Code merges in Git; migrations run on `main`; `main` deploys. |
-| Branch data is throwaway | Only migration files reach `main`. Never copy data from a branch.                            |
-| Never deploy `main`      | Only the product owner deploys `main`                                                        |
+| Rule                     | Detail                                                                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One app in the end       | Branches are temporary copies. Code merges in Git; migrations run on `main`; `main` deploys.                                                                                  |
+| Branch data is throwaway | Only migration files reach `main`. Never copy data from a branch.                                                                                                             |
+| Protected `main`         | `main` is a protected branch in InstaCloud's agent policy. John's deploys and migrations on `main` pause for the product owner's approval. Bob and Alice never deploy `main`. |
 
 ---
 

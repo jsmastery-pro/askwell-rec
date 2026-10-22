@@ -8,22 +8,22 @@ Askwell is an AI support chat widget for any website. Three agents build it as a
 
 ## Docs
 
-| File | Read it for |
-|---|---|
+| File              | Read it for                                                     |
+| ----------------- | --------------------------------------------------------------- |
 | `docs/project.md` | What we build: features, data model, API routes, security rules |
-| `docs/plan.md` | Build order, every task, and its status |
-| `docs/tasks/*.md` | One task each. Read only the tasks you own. |
+| `docs/plan.md`    | Build order, every task, and its status                         |
+| `docs/tasks/*.md` | One task each. Read only the tasks you own.                     |
 
 Read only the `project.md` sections your task lists. Don't load the whole file.
 
 ## The team
 
-| Member | Role |
-|---|---|
-| Product owner (human) | Approves plans, answers questions, merges PRs, deploys `main` |
-| John | Lead engineer. Breaks phases into tasks, assigns them, reviews PRs. Writes no app code. |
-| Bob, Alice | Developers. Build the tasks assigned to them. |
-| CodeRabbit | Reviews every PR, ranks the PR queue |
+| Member                | Role                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product owner (human) | Approves plans, answers questions, merges PRs, approves every `main` deploy                                                                                                          |
+| John                  | Lead engineer. Breaks phases into tasks, assigns them, reviews PRs, deploys `main` after a merge (each deploy needs the product owner's approval in InstaCloud). Writes no app code. |
+| Bob, Alice            | Developers. Build the tasks assigned to them.                                                                                                                                        |
+| CodeRabbit            | Reviews every PR, ranks the PR queue                                                                                                                                                 |
 
 You can't reach the other agents. Sandboxes are isolated. If you need something from another agent, tell the product owner.
 
@@ -48,24 +48,27 @@ You can't reach the other agents. Sandboxes are isolated. If you need something 
 8. Push and open one PR for the task: `gh pr create --title "[P3-T02] Chat route"`. Body: what changed, how you tested, the "Done when" list with each box checked or explained.
 9. Deploy to your own InstaCloud environment (see `ROLE.md`). Put the URL in the PR.
 10. Tell the product owner the PR is ready.
+11. Start your next ready task right away, on a new branch from `main`. Don't wait for the review or the merge. When review comments arrive, switch back, fix them, push, then return to the new task.
+12. Never start a task that needs code from one of your open PRs. If nothing independent is ready, say so and wait.
 
 Task status lives only in `docs/plan.md`. Only John edits it.
 
 ## When you must stop and ask
 
-| Situation | Do |
-|---|---|
-| You need to edit a file outside "Files allowed" | Stop. Say which file and why. |
-| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. John plans it; the product owner approves it. |
-| The task is unclear or conflicts with `project.md` | Stop. Ask. Don't guess. |
-| A needed task isn't merged and there's no mock | Stop. Say what you're waiting for. |
+| Situation                                                                           | Do                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| You need to edit a file outside "Files allowed"                                     | Stop. Say which file and why.                                                                                                                                                                                                                                 |
+| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. John plans it; the product owner approves it.                                                                                                                                                                                 |
+| The task is unclear or conflicts with `project.md`                                  | Stop. Ask. Don't guess.                                                                                                                                                                                                                                       |
+| A needed task isn't merged and there's no mock                                      | Stop. Say what you're waiting for.                                                                                                                                                                                                                            |
+| A website or service is blocked by the sandbox network                              | Don't guess or work around it. Check what was blocked (`sbx policy log` output or the error), then send the product owner one message: the exact domains, one per line, and one line on why each is needed. Wait until they confirm it's allowed, then retry. |
 
 ## After review
 
 - Fix every valid CodeRabbit or John comment in the same branch.
 - If a comment is wrong, reply on the PR with the reason. Don't silently ignore it.
 - Never merge your own PR, never push to `main`, never force-push a branch under review.
-- After any merge to `main`, pull before you start the next task.
+- After any merge to `main`, pull before you create your next branch.
 
 ## Database rules
 
@@ -73,7 +76,7 @@ Task status lives only in `docs/plan.md`. Only John edits it.
 - Every schema change is a migration in the same PR (`pnpm db:generate`). Never edit a merged migration.
 - Add a new table or column only if your task says so.
 - Your branch database is yours to test with. Its data is throwaway.
-- Never touch the `main` database. The product owner runs migrations on `main`.
+- Never touch the `main` database. John runs migrations on `main` after a merge, through InstaCloud, with the product owner's approval.
 
 ## Security rules
 
@@ -86,21 +89,21 @@ Task status lives only in `docs/plan.md`. Only John edits it.
 
 ## Code conventions
 
-| Area | Rule |
-|---|---|
-| Types | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
-| API input | A zod schema per route, next to its type in `packages/shared` |
-| API errors | `{ error: { code, message } }` with the right HTTP status |
-| Tests | Vitest. At least one test per route and per pure function. |
-| New dependency | Allowed. Name it and the reason in the PR body. |
-| UI | Reuse components in `apps/web/components` |
-| App name | `APP_NAME` from `packages/shared`. Never hardcode it. |
+| Area           | Rule                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Types          | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
+| API input      | A zod schema per route, next to its type in `packages/shared`                                |
+| API errors     | `{ error: { code, message } }` with the right HTTP status                                    |
+| Tests          | Vitest. At least one test per route and per pure function.                                   |
+| New dependency | Allowed. Name it and the reason in the PR body.                                              |
+| UI             | Reuse components in `apps/web/components`                                                    |
+| App name       | `APP_NAME` from `packages/shared`. Never hardcode it.                                        |
 
 ## Commands
 
-| Command | Does |
-|---|---|
-| `pnpm dev` | Run the app locally |
-| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR. |
-| `pnpm db:generate` | Create a migration from schema changes |
-| `pnpm db:migrate` | Apply migrations to the database in `DATABASE_URL` |
+| Command                                                  | Does                                               |
+| -------------------------------------------------------- | -------------------------------------------------- |
+| `pnpm dev`                                               | Run the app locally                                |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR.                 |
+| `pnpm db:generate`                                       | Create a migration from schema changes             |
+| `pnpm db:migrate`                                        | Apply migrations to the database in `DATABASE_URL` |
