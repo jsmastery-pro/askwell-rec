@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const MESSAGE_MAX_LENGTH = 1000;
 
-export const KNOWLEDGE_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export const MAX_KNOWLEDGE_FILE_BYTES = 10 * 1024 * 1024;
 export const KNOWLEDGE_TEXT_MAX_LENGTH = 100_000;
 
 export const KNOWLEDGE_FILE_TYPES = ["pdf", "md", "txt"] as const;

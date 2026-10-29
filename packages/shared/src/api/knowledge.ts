@@ -2,7 +2,7 @@ import { z } from "zod";
 import { KnowledgeSourceSchema } from "../entities";
 import { DeletedResponseSchema, EmptyRequestSchema } from "./common";
 import {
-  KNOWLEDGE_FILE_MAX_BYTES,
+  MAX_KNOWLEDGE_FILE_BYTES,
   KNOWLEDGE_FILE_TYPES,
   KNOWLEDGE_TEXT_MAX_LENGTH,
 } from "../limits";
@@ -30,7 +30,7 @@ export const CreateUploadUrlRequestSchema = z.object({
     .min(1)
     .max(KNOWLEDGE_TITLE_MAX_LENGTH)
     .regex(fileExtension, `Allowed file types: ${KNOWLEDGE_FILE_TYPES.join(", ")}`),
-  sizeBytes: z.number().int().positive().max(KNOWLEDGE_FILE_MAX_BYTES),
+  sizeBytes: z.number().int().positive().max(MAX_KNOWLEDGE_FILE_BYTES),
 });
 export type CreateUploadUrlRequest = z.infer<typeof CreateUploadUrlRequestSchema>;
 
