@@ -15,6 +15,10 @@ const CUSTOMIZATION_LABELS = {
 
 const number = new Intl.NumberFormat("en-US");
 
+function count(n: number, one: string, many: string): string {
+  return `${number.format(n)} ${n === 1 ? one : many}`;
+}
+
 // Plans without an entry in PLAN_PRICES are free.
 export function priceOf(plan: Plan): number {
   return plan === "pro" ? PLAN_PRICES.pro.monthlyUsd : 0;
@@ -38,11 +42,17 @@ export function Pricing() {
                 <span className="text-sm text-fg-muted"> / month</span>
               </p>
               <ul className="mt-6 flex-1 space-y-2 text-sm">
-                <li>{number.format(limits.projects)} projects</li>
-                <li>{number.format(limits.messagesPerMonthPerProject)} messages / month per project</li>
-                <li>{number.format(limits.knowledgeSourcesPerProject)} knowledge sources per project</li>
+                <li>{count(limits.projects, "project", "projects")}</li>
+                <li>
+                  {number.format(limits.messagesPerMonthPerProject)} messages / month per project
+                </li>
+                <li>
+                  {number.format(limits.knowledgeSourcesPerProject)} knowledge sources per project
+                </li>
                 {customizations.length > 0 ? (
-                  <li>Customize: {customizations.map((key) => CUSTOMIZATION_LABELS[key]).join(", ")}</li>
+                  <li>
+                    Customize: {customizations.map((key) => CUSTOMIZATION_LABELS[key]).join(", ")}
+                  </li>
                 ) : (
                   <li className="text-fg-muted">Default widget look</li>
                 )}
