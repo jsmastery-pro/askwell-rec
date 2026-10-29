@@ -4,10 +4,10 @@ Askwell is an AI support chat widget for any website. A team of agents builds it
 
 ## Docs
 
-| File | Read it for |
-|---|---|
+| File              | Read it for                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
 | `docs/project.md` | What we build: features, data model, API routes, security rules, design |
-| `docs/plan.md` | The phases, in build order (human-written) |
+| `docs/plan.md`    | The phases, in build order (human-written)                              |
 
 Your task (from `get_my_task`) lists the `project.md` sections it needs. Read those, not the whole file.
 
@@ -24,7 +24,7 @@ Your task (from `get_my_task`) lists the `project.md` sections it needs. Read th
 
 - Run all checks (see Commands). All must pass.
 - PR body: what changed, how you tested, and the task's done-when list with each item checked or explained.
-- Vercel deploys a preview of every PR. Check your change on it, and put the preview URL in the PR.
+- Vercel deploys a preview of every PR. Check your change on it, and put the preview URL in the PR. If the repo isn't connected to Vercel yet (early Phase 0), say so in the PR and skip this check.
 
 ## Checking your change on a Vercel preview
 
@@ -34,11 +34,11 @@ Your task (from `get_my_task`) lists the `project.md` sections it needs. Read th
 
 ## When you must stop and ask
 
-| Situation | Do |
-|---|---|
-| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. The lead plans it; the product owner approves it. |
-| The task is unclear or conflicts with `project.md` | Stop. Ask. Don't guess. |
-| You need an account, a key, or a sign-in | Stop. Say exactly what you need and where it goes (e.g. your env file). Accounts and sign-ins are the product owner's job. |
+| Situation                                                                           | Do                                                                                                                         |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. The lead plans it; the product owner approves it.                                          |
+| The task is unclear or conflicts with `project.md`                                  | Stop. Ask. Don't guess.                                                                                                    |
+| You need an account, a key, or a sign-in                                            | Stop. Say exactly what you need and where it goes (e.g. your env file). Accounts and sign-ins are the product owner's job. |
 
 ## Reviews and your next task
 
@@ -69,20 +69,20 @@ Your task (from `get_my_task`) lists the `project.md` sections it needs. Read th
 
 ## Code conventions
 
-| Area | Rule |
-|---|---|
-| Types | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
-| API input | A zod schema per route, next to its type in `packages/shared` |
-| API errors | `{ error: { code, message } }` with the right HTTP status |
-| Tests | Vitest. At least one test per route and per pure function. |
-| New dependency | Allowed. Name it and the reason in the PR body. |
-| UI | Follow `project.md` §13 Design. Reuse components in `apps/web/components`. |
-| App name | `APP_NAME` from `packages/shared`. Never hardcode it. |
+| Area           | Rule                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Types          | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
+| API input      | A zod schema per route, next to its type in `packages/shared`                                |
+| API errors     | `{ error: { code, message } }` with the right HTTP status                                    |
+| Tests          | Vitest. At least one test per route and per pure function.                                   |
+| New dependency | Allowed. Name it and the reason in the PR body.                                              |
+| UI             | Follow `project.md` §13 Design. Reuse components in `apps/web/components`.                   |
+| App name       | `APP_NAME` from `packages/shared`. Never hardcode it.                                        |
 
 ## Commands
 
-| Command | Does |
-|---|---|
-| `pnpm dev` | Run the app locally |
-| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR. |
-| `pnpm db:types` | Regenerate `packages/db/types.ts` from the dev project (needs `SUPABASE_ACCESS_TOKEN`; agents use the MCP's type generator instead) |
+| Command                                                  | Does                                                                                                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                                               | Run the app locally                                                                                                                 |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR.                                                                                                  |
+| `pnpm db:types`                                          | Regenerate `packages/db/types.ts` from the dev project (needs `SUPABASE_ACCESS_TOKEN`; agents use the MCP's type generator instead) |
