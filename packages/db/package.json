@@ -6,9 +6,14 @@
   "main": "./types.ts",
   "types": "./types.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "~6.0.3"
+    "@electric-sql/pglite": "0.5.13",
+    "@electric-sql/pglite-pgvector": "0.0.14",
+    "@types/node": "^22.20.5",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
   }
 }

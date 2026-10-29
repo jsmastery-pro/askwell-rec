@@ -1,10 +1,14 @@
+import { ApiErrorSchema } from "@askwell/shared";
 import { describe, expect, it } from "vitest";
-import { unauthorizedBody } from "../../lib/auth/unauthorized";
+import { UNAUTHORIZED_STATUS, unauthorizedBody } from "../../lib/auth/unauthorized";
 
 describe("unauthorizedBody", () => {
-  it("has the API error shape", () => {
-    expect(unauthorizedBody()).toEqual({
-      error: { code: "unauthorized", message: expect.any(String) },
-    });
+  it("is a valid ApiError with the unauthorized code", () => {
+    const body = ApiErrorSchema.parse(unauthorizedBody());
+    expect(body.error.code).toBe("unauthorized");
+  });
+
+  it("is sent with status 401", () => {
+    expect(UNAUTHORIZED_STATUS).toBe(401);
   });
 });

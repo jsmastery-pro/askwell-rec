@@ -1,1 +1,107 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens (project.md §13). Defined once, used by every page.
+ *
+ * 1. @theme: raw scale (grays, radius, shadow, blur). Utilities: bg-gray-900, rounded-lg, ...
+ * 2. Surfaces: `data-theme="dark"` (landing) and `data-theme="light"` (dashboard) on any wrapper
+ *    set the semantic variables. With no wrapper, the dark surface applies.
+ * 3. @theme inline: semantic utilities (bg-surface, text-fg, border-line, ...) that follow the
+ *    surface. Components use these, never raw colors.
+ */
+
+@theme {
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #0a0a0a;
+  --color-danger: #ef4444;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --shadow-glass-dark: 0 8px 32px 0 rgb(0 0 0 / 0.5);
+  --shadow-glass-light: 0 8px 32px 0 rgb(0 0 0 / 0.08);
+
+  --blur-glass: 16px;
+}
+
+:root,
+[data-theme="dark"] {
+  --surface: var(--color-black);
+  --surface-raised: var(--color-gray-900);
+  --fg: var(--color-white);
+  --fg-muted: var(--color-gray-400);
+  --line: rgb(255 255 255 / 0.12);
+  --glass: rgb(255 255 255 / 0.06);
+  --glass-shadow: var(--shadow-glass-dark);
+  --focus: var(--color-white);
+  --danger: var(--color-danger);
+}
+
+[data-theme="light"] {
+  --surface: var(--color-gray-50);
+  --surface-raised: var(--color-white);
+  --fg: var(--color-gray-950);
+  --fg-muted: var(--color-gray-500);
+  --line: rgb(0 0 0 / 0.1);
+  --glass: rgb(255 255 255 / 0.6);
+  --glass-shadow: var(--shadow-glass-light);
+  --focus: var(--color-gray-950);
+  --danger: var(--color-danger);
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-line: var(--line);
+  --color-glass: var(--glass);
+  --color-focus: var(--focus);
+  --color-danger-fg: var(--danger);
+  --shadow-glass: var(--glass-shadow);
+}
+
+/*
+ * Motion helpers. CSS only; both are off under prefers-reduced-motion.
+ *   .motion-enter      plays once on load: fade + rise. Stagger with --motion-delay (e.g. 120ms).
+ *   .motion-scroll-in  plays as the element scrolls into view. Browsers without scroll-driven
+ *                      animations show the element as is.
+ */
+@keyframes motion-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-enter {
+    animation: motion-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--motion-delay, 0ms);
+  }
+
+  @supports (animation-timeline: view()) {
+    .motion-scroll-in {
+      animation: motion-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+  }
+}

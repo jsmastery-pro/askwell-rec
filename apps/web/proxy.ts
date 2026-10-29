@@ -1,7 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { SIGN_IN_URL, SIGN_UP_URL, getRouteAccess } from "./lib/auth/routes";
-import { unauthorizedBody } from "./lib/auth/unauthorized";
+import { UNAUTHORIZED_STATUS, unauthorizedBody } from "./lib/auth/unauthorized";
 
 export default clerkMiddleware(
   async (auth, req) => {
@@ -13,7 +13,7 @@ export default clerkMiddleware(
 
     // API callers get JSON, never a redirect.
     if (access === "protected-api") {
-      return NextResponse.json(unauthorizedBody(), { status: 401 });
+      return NextResponse.json(unauthorizedBody(), { status: UNAUTHORIZED_STATUS });
     }
     return redirectToSignIn({ returnBackUrl: req.url });
   },
