@@ -1,31 +1,15 @@
-@ROLE.md
-
 # Askwell — Team Rules
 
-Askwell is an AI support chat widget for any website. Three agents build it as a team. Every agent follows this file. Your own role is in `ROLE.md` (imported above).
-
-**If you don't know your name and role, `ROLE.md` is missing. Stop and ask the product owner before doing anything.**
+Askwell is an AI support chat widget for any website. A team of agents builds it, run from JSM HQ. Every agent follows this file. JSM HQ adds your role, the team, the workflow rules and your tools when your session starts.
 
 ## Docs
 
-| File              | Read it for                                                     |
-| ----------------- | --------------------------------------------------------------- |
-| `docs/project.md` | What we build: features, data model, API routes, security rules |
-| `docs/plan.md`    | Build order, every task, and its status                         |
-| `docs/tasks/*.md` | One task each. Read only the tasks you own.                     |
+| File | Read it for |
+|---|---|
+| `docs/project.md` | What we build: features, data model, API routes, security rules, design |
+| `docs/plan.md` | The phases, in build order (human-written) |
 
-Read only the `project.md` sections your task lists. Don't load the whole file.
-
-## The team
-
-| Member                | Role                                                                                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product owner (human) | Approves plans, answers questions, merges PRs, approves every `main` deploy                                                                                                          |
-| John                  | Lead engineer. Breaks phases into tasks, assigns them, reviews PRs, deploys `main` after a merge (each deploy needs the product owner's approval in InstaCloud). Writes no app code. |
-| Bob, Alice            | Developers. Build the tasks assigned to them.                                                                                                                                        |
-| CodeRabbit            | Reviews every PR, ranks the PR queue                                                                                                                                                 |
-
-You can't reach the other agents. Sandboxes are isolated. If you need something from another agent, tell the product owner.
+Your task (from `get_my_task`) lists the `project.md` sections it needs. Read those, not the whole file.
 
 ## How to talk to the product owner
 
@@ -36,74 +20,69 @@ You can't reach the other agents. Sandboxes are isolated. If you need something 
 - One decision at a time unless they're linked. Never more than 3.
 - Say what you know vs. what you're guessing.
 
-## Working on a task
+## Before you open a PR
 
-1. `git checkout main && git pull`
-2. Read your task file and the `project.md` sections it lists.
-3. Check "Needs first". If a needed task isn't `done` in `plan.md`, use the mocks in the task's Notes, or stop and ask.
-4. Create a branch: `<your-name>/<task-id>-<short-name>`, e.g. `bob/P3-T02-chat-route`
-5. Build. Edit only the paths in "Files allowed".
-6. Run all checks (see Commands). All must pass.
-7. Commit in small steps. Message: `P3-T02: add rate limit check`
-8. Push and open one PR for the task: `gh pr create --title "[P3-T02] Chat route"`. Body: what changed, how you tested, the "Done when" list with each box checked or explained.
-9. Deploy to your own InstaCloud environment (see `ROLE.md`). Put the URL in the PR.
-10. Tell the product owner the PR is ready.
-11. Start your next ready task right away, on a new branch from `main`. Don't wait for the review or the merge. When review comments arrive, switch back, fix them, push, then return to the new task.
-12. Never start a task that needs code from one of your open PRs. If nothing independent is ready, say so and wait.
+- Run all checks (see Commands). All must pass.
+- PR body: what changed, how you tested, and the task's done-when list with each item checked or explained.
+- Vercel deploys a preview of every PR. Check your change on it, and put the preview URL in the PR.
 
-Task status lives only in `docs/plan.md`. Only John edits it.
+## Checking your change on a Vercel preview
+
+- Get the preview URL from GitHub, never from the branch name (Vercel shortens long names): the Vercel comment on your PR (`gh pr view <n> --comments`), or the PR's deployment status (`gh api repos/<owner>/<repo>/deployments?ref=<branch>`). Wait until the deployment succeeds.
+- Previews are protected. Send the header `x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET` on every request. For browser tests, also send `x-vercel-set-bypass-cookie: true` on the first request.
+- If a preview URL is blocked by your sandbox, call `request_access` for `*.vercel.app` (all previews) rather than the single URL.
 
 ## When you must stop and ask
 
-| Situation                                                                           | Do                                                                                                                                                                                                                                                            |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| You need to edit a file outside "Files allowed"                                     | Stop. Say which file and why.                                                                                                                                                                                                                                 |
-| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. John plans it; the product owner approves it.                                                                                                                                                                                 |
-| The task is unclear or conflicts with `project.md`                                  | Stop. Ask. Don't guess.                                                                                                                                                                                                                                       |
-| A needed task isn't merged and there's no mock                                      | Stop. Say what you're waiting for.                                                                                                                                                                                                                            |
-| A website or service is blocked by the sandbox network                              | Don't guess or work around it. Check what was blocked (`sbx policy log` output or the error), then send the product owner one message: the exact domains, one per line, and one line on why each is needed. Wait until they confirm it's allowed, then retry. |
+| Situation | Do |
+|---|---|
+| You need to change `packages/shared`, or change or drop an existing table or column | Stop. That's a contract change. The lead plans it; the product owner approves it. |
+| The task is unclear or conflicts with `project.md` | Stop. Ask. Don't guess. |
+| You need an account, a key, or a sign-in | Stop. Say exactly what you need and where it goes (e.g. your env file). Accounts and sign-ins are the product owner's job. |
 
-## After review
+## Reviews and your next task
 
-- Fix every valid CodeRabbit or John comment in the same branch.
-- If a comment is wrong, reply on the PR with the reason. Don't silently ignore it.
+- Fix every valid CodeRabbit or lead comment on the same branch. If a comment is wrong, reply on the PR with the reason. Answer every thread.
+- Once your PR is open, the lead may give you your next task. Take it on a new branch from `main`.
+- When review comments arrive on an earlier PR, switch back to that branch, fix, push, and return. Don't call `set_my_status` for the earlier task: it would update your current one. HQ tracks the earlier PR by itself.
+- Never start a task that needs code from one of your open PRs. If nothing independent is ready, say so.
 - Never merge your own PR, never push to `main`, never force-push a branch under review.
-- After any merge to `main`, pull before you create your next branch.
 
 ## Database rules
 
-- Schema and migrations live in `packages/db` (Drizzle).
-- Every schema change is a migration in the same PR (`pnpm db:generate`). Never edit a merged migration.
-- Add a new table or column only if your task says so.
-- Your branch database is yours to test with. Its data is throwaway.
-- Never touch the `main` database. John runs migrations on `main` after a merge, through InstaCloud, with the product owner's approval.
+- The app reaches the database only through `supabase-js`: `createOwnerClient()` (the owner's Clerk token, RLS applies) and `createServiceClient()` (secret key, server only), both in `apps/web/lib/supabase`.
+- Migrations are SQL files in `supabase/migrations`, named `<UTC timestamp>_<name>.sql`, newer than the latest one on `main`. Never edit a merged migration.
+- Every new table or function ships with its RLS policies and grants in the same migration (see `project.md` §7 and §9). Add a new table or column only if your task says so.
+- Test migrations, policies and functions on pglite (`packages/db/supabase-pglite.ts`). Never run a local Supabase stack or a Docker database.
+- The Supabase dev project is shared by every developer and every preview. Its data is throwaway, but never apply an unmerged migration to it. After your PR merges, apply it to dev through the Supabase MCP, recording the file's version, then regenerate the types (the MCP's type generator) and confirm there's no diff.
+- The Supabase MCP is scoped to the dev project. Never touch the production database. The product owner applies migrations to production before promoting the build.
+- Migrations are additive: the live version must keep working while one runs. Dropping or renaming a table or column happens in a later PR, once no deployed code uses it.
 
 ## Security rules
 
 `docs/project.md` §9 lists every rule. The ones you must never break:
 
 - Read the plan on the server in every gated action. Never trust the client.
-- Every owner query goes through `getOwnedProject(projectId)`.
+- Owner reads go through the owner client, so RLS scopes them. Never use the service client with a manual owner filter; use it only after the route has checked ownership.
 - Render visitor messages and bot replies as text, never HTML.
-- No secret in `NEXT_PUBLIC_*`, the widget bundle, or a commit. Never remove `.env` or `ROLE.md` from `.gitignore`.
+- No secret in `NEXT_PUBLIC_*`, the widget bundle, or a commit. Never remove `.env` from `.gitignore`.
 
 ## Code conventions
 
-| Area           | Rule                                                                                         |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| Types          | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
-| API input      | A zod schema per route, next to its type in `packages/shared`                                |
-| API errors     | `{ error: { code, message } }` with the right HTTP status                                    |
-| Tests          | Vitest. At least one test per route and per pure function.                                   |
-| New dependency | Allowed. Name it and the reason in the PR body.                                              |
-| UI             | Reuse components in `apps/web/components`                                                    |
-| App name       | `APP_NAME` from `packages/shared`. Never hardcode it.                                        |
+| Area | Rule |
+|---|---|
+| Types | TypeScript `strict`. No `any`. Import API types from `packages/shared`; never redefine them. |
+| API input | A zod schema per route, next to its type in `packages/shared` |
+| API errors | `{ error: { code, message } }` with the right HTTP status |
+| Tests | Vitest. At least one test per route and per pure function. |
+| New dependency | Allowed. Name it and the reason in the PR body. |
+| UI | Follow `project.md` §13 Design. Reuse components in `apps/web/components`. |
+| App name | `APP_NAME` from `packages/shared`. Never hardcode it. |
 
 ## Commands
 
-| Command                                                  | Does                                               |
-| -------------------------------------------------------- | -------------------------------------------------- |
-| `pnpm dev`                                               | Run the app locally                                |
-| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR.                 |
-| `pnpm db:generate`                                       | Create a migration from schema changes             |
-| `pnpm db:migrate`                                        | Apply migrations to the database in `DATABASE_URL` |
+| Command | Does |
+|---|---|
+| `pnpm dev` | Run the app locally |
+| `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` | Checks. All must pass before a PR. |
+| `pnpm db:types` | Regenerate `packages/db/types.ts` from the dev project (needs `SUPABASE_ACCESS_TOKEN`; agents use the MCP's type generator instead) |
