@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@askwell/shared": "workspace:*",
+    "@clerk/nextjs": "^7.9.22",
     "next": "^16.4.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
