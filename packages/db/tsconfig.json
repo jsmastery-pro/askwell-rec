@@ -1,4 +1,4 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["types.ts"]
+  "include": ["types.ts", "supabase-pglite.ts", "vitest.config.ts", "test"]
 }
