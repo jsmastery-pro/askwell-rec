@@ -9,11 +9,16 @@ const redirect = vi.hoisted(() =>
   }),
 );
 
+vi.mock("server-only", () => ({}));
 vi.mock("@clerk/nextjs/server", () => ({
-  auth: async () => ({ isAuthenticated: state.isAuthenticated }),
+  auth: async () => ({
+    isAuthenticated: state.isAuthenticated,
+    userId: state.isAuthenticated ? "user_123" : null,
+  }),
 }));
 vi.mock("next/navigation", () => ({ redirect, usePathname: () => "/dashboard" }));
 vi.mock("@clerk/nextjs", () => ({ UserButton: () => null }));
+vi.mock("../../lib/accounts", () => ({ ensureAccount: async () => {} }));
 
 import DashboardLayout from "../../app/dashboard/layout";
 
