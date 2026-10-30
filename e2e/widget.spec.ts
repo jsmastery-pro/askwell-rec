@@ -13,6 +13,22 @@ test.beforeAll(() => {
   }
 });
 
+// Protected Vercel previews: with VERCEL_AUTOMATION_BYPASS_SECRET set, add the bypass header to
+// every request to the app's origin (widget.js, the config fetch, the /embed iframe and its
+// assets), and to nothing else. The secret stays in this process, never in the host page. A
+// header on each request needs no bypass cookie, which a cross-origin iframe may not send.
+test.beforeEach(async ({ context }) => {
+  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (!secret) return;
+  await context.route(
+    (url) => url.origin === APP_ORIGIN,
+    (route) =>
+      route.continue({
+        headers: { ...route.request().headers(), "x-vercel-protection-bypass": secret },
+      }),
+  );
+});
+
 const host = (page: Page) => page.locator("[data-askwell]");
 const widgetButton = (page: Page) => host(page).locator("button.b");
 const panelFrame = (page: Page) => host(page).locator("iframe");
