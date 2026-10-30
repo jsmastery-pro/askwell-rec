@@ -1,5 +1,6 @@
 export * from "./app";
 export * from "./plans";
+export * from "./widget-options";
 export * from "./widget";
 export * from "./limits";
 export * from "./entities";

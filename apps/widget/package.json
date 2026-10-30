@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --minify --format=iife --target=es2020 --platform=browser --outfile=dist/widget.js",
+    "build": "esbuild src/index.ts --bundle --minify --format=iife --target=es2020 --platform=browser --outfile=dist/widget.js && node scripts/check-bundle.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@askwell/shared": "workspace:*"
   }
 }
