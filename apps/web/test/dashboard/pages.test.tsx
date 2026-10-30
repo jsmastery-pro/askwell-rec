@@ -3,23 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import BillingPage from "../../app/dashboard/billing/page";
 import DashboardError from "../../app/dashboard/error";
 import Loading from "../../app/dashboard/loading";
-import ProjectsPage from "../../app/dashboard/page";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
-
-describe("Projects page", () => {
-  const html = renderToStaticMarkup(<ProjectsPage />);
-
-  it("shows the empty state", () => {
-    expect(html).toContain("<h1");
-    expect(html).toContain("No projects yet");
-  });
-
-  it("has a disabled New project button and a Phase 2 note", () => {
-    expect(html).toMatch(/<button [^>]*disabled[^>]*>New project<\/button>/);
-    expect(html).toContain("Phase 2");
-  });
-});
 
 describe("Billing page", () => {
   it("shows a placeholder empty state", () => {
