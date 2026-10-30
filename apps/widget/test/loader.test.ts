@@ -349,3 +349,75 @@ describe("panel and messages", () => {
     expect(badge.hidden).toBe(true);
   });
 });
+
+describe("init handshake", () => {
+  /** Opens the panel, then fakes timers and fires the iframe's load. */
+  async function loaded() {
+    const parts = await mounted();
+    const iframe = await openPanel(parts.button, parts.root);
+    const postMessage = vi.spyOn(iframe.contentWindow!, "postMessage");
+    vi.useFakeTimers();
+    iframe.dispatchEvent(new Event("load"));
+    const inits = () => postMessage.mock.calls.length;
+    return { ...parts, iframe, postMessage, inits };
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("retries a lost init until askwell:ready, then stops", async () => {
+    const { iframe, postMessage, inits } = await loaded();
+    // The panel wasn't listening yet: this first init is lost.
+    expect(inits()).toBe(1);
+    vi.advanceTimersByTime(250);
+    expect(inits()).toBe(2);
+    vi.advanceTimersByTime(250);
+    expect(inits()).toBe(3);
+    expect(postMessage.mock.calls.every((call) => (call[1] as unknown) === APP_ORIGIN)).toBe(true);
+
+    post({ type: "askwell:ready" }, { source: iframe.contentWindow });
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(5_000);
+    expect(inits()).toBe(3);
+  });
+
+  it("ignores askwell:ready from the wrong origin or source", async () => {
+    const { iframe, inits } = await loaded();
+    post({ type: "askwell:ready" }, { origin: "https://evil.test", source: iframe.contentWindow });
+    post({ type: "askwell:ready" }, { source: window });
+    post({ type: "askwell:ready" }, { source: null });
+    vi.advanceTimersByTime(500);
+    expect(inits()).toBe(3);
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it("gives up after 10 s with no timer left running", async () => {
+    const { inits } = await loaded();
+    vi.advanceTimersByTime(9_999);
+    expect(inits()).toBe(40);
+    vi.advanceTimersByTime(1);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(60_000);
+    expect(inits()).toBe(40);
+  });
+
+  it("stops retrying once the iframe is removed from the page", async () => {
+    const { host, inits } = await loaded();
+    host.remove();
+    vi.advanceTimersByTime(250);
+    expect(inits()).toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("a reload restarts init without stacking timers", async () => {
+    const { iframe, inits } = await loaded();
+    post({ type: "askwell:ready" }, { source: iframe.contentWindow });
+    iframe.dispatchEvent(new Event("load"));
+    iframe.dispatchEvent(new Event("load"));
+    expect(vi.getTimerCount()).toBe(1);
+    expect(inits()).toBe(3);
+    vi.advanceTimersByTime(250);
+    expect(inits()).toBe(4);
+  });
+});

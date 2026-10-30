@@ -1,5 +1,7 @@
 // Runs on the customer's page. Import only from `@askwell/shared/embed` (zod-free, keeps us under 5 kB).
 import {
+  EMBED_INIT_RETRY_MS,
+  EMBED_INIT_TIMEOUT_MS,
   EMBED_PATH,
   HEX_COLOR_PATTERN,
   WIDGET_ANIMATIONS,
@@ -22,6 +24,8 @@ export type LoaderConfig = {
 };
 
 const HOST_ATTRIBUTE = "data-askwell";
+// One send on load, then one per retry, inside EMBED_INIT_TIMEOUT_MS.
+const MAX_INIT_SENDS = Math.ceil(EMBED_INIT_TIMEOUT_MS / EMBED_INIT_RETRY_MS);
 
 function includes<T extends string>(list: readonly T[], value: unknown): value is T {
   return (list as readonly unknown[]).includes(value);
@@ -113,6 +117,11 @@ function render(appOrigin: string, key: string, config: LoaderConfig): HTMLEleme
   let iframe: HTMLIFrameElement | null = null;
   let open = false;
   let unread = 0;
+  let initRetry: ReturnType<typeof setInterval> | undefined;
+  const stopInit = () => {
+    clearInterval(initRetry);
+    initRetry = undefined;
+  };
 
   const showBadge = () => {
     badge.hidden = open || unread === 0;
@@ -134,9 +143,22 @@ function render(appOrigin: string, key: string, config: LoaderConfig): HTMLEleme
       iframe.title = config.label;
       iframe.src = `${appOrigin}${EMBED_PATH}?key=${encodeURIComponent(key)}`;
       const frame = iframe;
+      // Each load is a new panel document: (re)start init and resend it until `askwell:ready`.
       frame.addEventListener("load", () => {
+        stopInit();
         const init: EmbedInitMessage = { type: "askwell:init" };
-        frame.contentWindow?.postMessage(init, appOrigin);
+        let sent = 0;
+        const sendInit = () => {
+          // Stop after ~10 s, or once the iframe (or our host) is no longer on the page.
+          if (sent >= MAX_INIT_SENDS || !frame.isConnected || !frame.contentWindow) {
+            stopInit();
+            return;
+          }
+          sent += 1;
+          frame.contentWindow.postMessage(init, appOrigin);
+        };
+        sendInit();
+        initRetry = setInterval(sendInit, EMBED_INIT_RETRY_MS);
       });
       wrap.prepend(frame);
       // Let the closed state paint first, so the open transition runs.
@@ -154,6 +176,9 @@ function render(appOrigin: string, key: string, config: LoaderConfig): HTMLEleme
     const message: unknown = event.data;
     if (!isEmbedMessage(message)) return;
     switch (message.type) {
+      case "askwell:ready":
+        stopInit();
+        break;
       case "askwell:close":
         setOpen(false);
         break;

@@ -3,7 +3,7 @@ import { APP_NAME, MESSAGE_MAX_LENGTH } from "@askwell/shared";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EmbedPanel } from "../../components/embed/EmbedPanel";
+import type { EmbedPanel as EmbedPanelComponent } from "../../components/embed/EmbedPanel";
 import { MOCK_REPLY, MOCK_REPLY_DELAY_MS } from "../../components/embed/chat-client";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -11,6 +11,9 @@ import { MOCK_REPLY, MOCK_REPLY_DELAY_MS } from "../../components/embed/chat-cli
 const HOST = "https://customer.test";
 const KEY = "pk_test_abc12345";
 
+// Fresh modules per test: the panel's bridge is created at module load and keeps its origin.
+let EmbedPanel: typeof EmbedPanelComponent;
+let disposeBridge: () => void;
 let container: HTMLDivElement;
 let root: Root;
 // Stands in for the host page: jsdom only accepts a Window or MessagePort as a message `source`.
@@ -53,7 +56,11 @@ async function init(source: MessageEventSource = parent, origin = HOST) {
   });
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules();
+  ({ EmbedPanel } = await import("../../components/embed/EmbedPanel"));
+  const { hostBridge } = await import("../../components/embed/host-bridge");
+  disposeBridge = () => hostBridge?.dispose();
   vi.useFakeTimers();
   parent = new MessageChannel().port1;
   parentPost = vi.fn();
@@ -67,6 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  disposeBridge();
   await act(async () => root.unmount());
   container.remove();
   Object.defineProperty(window, "parent", { configurable: true, get: () => window });
@@ -154,8 +162,36 @@ describe("EmbedPanel ↔ loader", () => {
     await render();
     await init();
     await act(async () => $<HTMLButtonElement>('button[aria-label="Close chat"]').click());
-    expect(parentPost).toHaveBeenCalledTimes(1);
-    expect(parentPost).toHaveBeenCalledWith({ type: "askwell:close" }, HOST);
+    expect(parentPost.mock.calls).toEqual([
+      [{ type: "askwell:ready" }, HOST],
+      [{ type: "askwell:close" }, HOST],
+    ]);
+  });
+
+  it("listens from module load: an init that arrives before the panel renders is kept", async () => {
+    // The race: the iframe's load (and the loader's first init) beat React hydration.
+    await init();
+    expect(parentPost.mock.calls).toEqual([[{ type: "askwell:ready" }, HOST]]);
+    await render();
+    await act(async () => $<HTMLButtonElement>('button[aria-label="Close chat"]').click());
+    expect(parentPost).toHaveBeenLastCalledWith({ type: "askwell:close" }, HOST);
+  });
+
+  it("keeps the first origin: a later init from another origin is ignored", async () => {
+    await render();
+    await init();
+    await init(parent, "https://evil.test");
+    await act(async () => $<HTMLButtonElement>('button[aria-label="Close chat"]').click());
+    expect(parentPost.mock.calls).toEqual([
+      [{ type: "askwell:ready" }, HOST],
+      [{ type: "askwell:close" }, HOST],
+    ]);
+  });
+
+  it("answers a parent init with askwell:ready to that origin", async () => {
+    await render();
+    await init();
+    expect(parentPost.mock.calls).toEqual([[{ type: "askwell:ready" }, HOST]]);
   });
 
   it("Escape also sends askwell:close", async () => {
@@ -198,6 +234,6 @@ describe("EmbedPanel ↔ loader", () => {
     await init();
     await send("hello");
     await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
-    expect(parentPost).not.toHaveBeenCalled();
+    expect(parentPost.mock.calls).toEqual([[{ type: "askwell:ready" }, HOST]]);
   });
 });
