@@ -61,6 +61,11 @@ test("1. the button appears inside a shadow root", async ({ page }) => {
 });
 
 test("2–4. open the panel, get a reply after the typing state, close it", async ({ page }) => {
+  // The panel uses nothing from Clerk, so customer pages must never load it (§9).
+  const clerkRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/clerk/i.test(new URL(request.url()).hostname)) clerkRequests.push(request.url());
+  });
   await openHostPage(page);
   await widgetButton(page).click();
 
@@ -74,15 +79,9 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   await expect(panel(page).getByRole("heading", { level: 1 })).toBeVisible();
 
   // 3. Type a message → typing state → reply.
-  // The input is server-rendered: text filled in before React hydrates doesn't reach its state,
-  // and React then treats the same text as unchanged. Clear and refill until Send turns on.
-  const textbox = panel(page).getByRole("textbox", { name: "Message" });
   const send = panel(page).getByRole("button", { name: "Send" });
-  await expect(async () => {
-    await textbox.fill("");
-    await textbox.fill("Hello from the e2e host page");
-    await expect(send).toBeEnabled({ timeout: 1_000 });
-  }).toPass({ timeout: 20_000 });
+  await panel(page).getByRole("textbox", { name: "Message" }).fill("Hello from the e2e host page");
+  await expect(send).toBeEnabled();
   await send.click();
   await expect(panel(page).locator('[data-role="visitor"]')).toHaveText(
     "Hello from the e2e host page",
@@ -97,6 +96,7 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   await panel(page).getByRole("button", { name: "Close chat" }).click();
   await expect(frame).toBeHidden();
   await expect(widgetButton(page)).toHaveAttribute("aria-expanded", "false");
+  expect(clerkRequests).toEqual([]);
 });
 
 test("5. a bad key renders no button", async ({ page }) => {

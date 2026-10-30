@@ -1,4 +1,11 @@
-import { Footer, Hero, HowItWorks, InstallSnippet, LiveDemo, Pricing } from "../components/landing";
+import {
+  Footer,
+  Hero,
+  HowItWorks,
+  InstallSnippet,
+  LiveDemo,
+  Pricing,
+} from "../../components/landing";
 
 export default function Home() {
   return (

@@ -1,4 +1,4 @@
-import { LoadingState } from "../../components/ui";
+import { LoadingState } from "../../../components/ui";
 
 export default function Loading() {
   return <LoadingState title="Loading" text="One moment." />;

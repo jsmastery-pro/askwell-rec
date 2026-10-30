@@ -1,8 +1,8 @@
 import { PlanSchema } from "@askwell/shared";
-import { NewProjectForm, ProjectList } from "../../components/projects";
-import { EmptyState, GlassPanel } from "../../components/ui";
-import { PROJECT_COLUMNS, toProject } from "../../lib/projects";
-import { createOwnerClient } from "../../lib/supabase/owner";
+import { NewProjectForm, ProjectList } from "../../../components/projects";
+import { EmptyState, GlassPanel } from "../../../components/ui";
+import { PROJECT_COLUMNS, toProject } from "../../../lib/projects";
+import { createOwnerClient } from "../../../lib/supabase/owner";
 
 export default async function ProjectsPage() {
   // Owner client: RLS scopes both reads to the signed-in owner. No manual owner filter.

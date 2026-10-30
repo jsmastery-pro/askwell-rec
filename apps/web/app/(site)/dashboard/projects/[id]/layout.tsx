@@ -1,8 +1,8 @@
 import { IdParamsSchema } from "@askwell/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ProjectTabs } from "../../../../components/projects";
-import { getOwnedProject } from "../../../../lib/projects";
+import { ProjectTabs } from "../../../../../components/projects";
+import { getOwnedProject } from "../../../../../lib/projects";
 
 export default async function ProjectLayout({
   children,

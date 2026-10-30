@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DashboardSidebar } from "../../components/dashboard/DashboardSidebar";
-import { ErrorState } from "../../components/ui";
-import { ensureAccount } from "../../lib/accounts";
-import { SIGN_IN_URL } from "../../lib/auth/routes";
+import { DashboardSidebar } from "../../../components/dashboard/DashboardSidebar";
+import { ErrorState } from "../../../components/ui";
+import { ensureAccount } from "../../../lib/accounts";
+import { SIGN_IN_URL } from "../../../lib/auth/routes";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Defense in depth: proxy.ts already gates /dashboard, but path matching alone can be bypassed.

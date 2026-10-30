@@ -1,4 +1,4 @@
-import { Button, EmptyState } from "../../../../components/ui";
+import { Button, EmptyState } from "../../../../../components/ui";
 
 export default function ProjectNotFound() {
   return (

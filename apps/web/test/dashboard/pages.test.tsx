@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import BillingPage from "../../app/dashboard/billing/page";
-import DashboardError from "../../app/dashboard/error";
-import Loading from "../../app/dashboard/loading";
+import BillingPage from "../../app/(site)/dashboard/billing/page";
+import DashboardError from "../../app/(site)/dashboard/error";
+import Loading from "../../app/(site)/dashboard/loading";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
 
