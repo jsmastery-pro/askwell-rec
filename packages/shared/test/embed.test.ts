@@ -3,6 +3,8 @@ import {
   EMBED_MESSAGE_TYPES,
   EMBED_PATH,
   VISITOR_ID_STORAGE_KEY,
+  EMBED_INIT_RETRY_MS,
+  EMBED_INIT_TIMEOUT_MS,
   WIDGET_CONFIG_PATH,
   WIDGET_POSITIONS,
   isEmbedMessage,
@@ -17,6 +19,11 @@ describe("embed constants", () => {
     expect(VISITOR_ID_STORAGE_KEY).toBe("askwell:visitor-id");
   });
 
+  it("retries init every 250 ms for at most 10 s", () => {
+    expect(EMBED_INIT_RETRY_MS).toBe(250);
+    expect(EMBED_INIT_TIMEOUT_MS).toBe(10_000);
+  });
+
   it("re-exports the same widget options as the main entry", () => {
     expect(WIDGET_POSITIONS).toBe(main.WIDGET_POSITIONS);
   });
@@ -25,6 +32,7 @@ describe("embed constants", () => {
 describe("isEmbedMessage", () => {
   it.each([
     { type: "askwell:init" },
+    { type: "askwell:ready" },
     { type: "askwell:close" },
     { type: "askwell:resize", height: 0 },
     { type: "askwell:resize", height: 412.5 },
@@ -41,6 +49,7 @@ describe("isEmbedMessage", () => {
     42,
     {},
     { type: "askwell:open" },
+    { type: "askwell:readyy" },
     { type: "other:close" },
     { type: "askwell:resize" },
     { type: "askwell:resize", height: "100" },
@@ -57,7 +66,7 @@ describe("isEmbedMessage", () => {
 
   it("covers every message type", () => {
     expect([...EMBED_MESSAGE_TYPES].sort()).toEqual(
-      ["askwell:close", "askwell:init", "askwell:resize", "askwell:unread"].sort(),
+      ["askwell:close", "askwell:init", "askwell:ready", "askwell:resize", "askwell:unread"].sort(),
     );
   });
 });

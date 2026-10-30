@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHostBridge } from "../../components/embed/host-bridge";
+import { createHostBridge, hostBridge } from "../../components/embed/host-bridge";
 
 const HOST = "https://customer.test";
 
@@ -14,6 +14,13 @@ function framed() {
   return { win, parent, deliver };
 }
 
+describe("hostBridge", () => {
+  it("is null during server rendering (no window), so SSR never listens or posts", () => {
+    expect(typeof window).toBe("undefined");
+    expect(hostBridge).toBeNull();
+  });
+});
+
 describe("createHostBridge", () => {
   it("stores the origin of askwell:init from window.parent and sends only there", () => {
     const { win, parent, deliver } = framed();
@@ -25,9 +32,24 @@ describe("createHostBridge", () => {
     bridge.send({ type: "askwell:unread", count: 2 });
     bridge.send({ type: "askwell:resize", height: 400 });
     expect(parent.postMessage.mock.calls).toEqual([
+      [{ type: "askwell:ready" }, HOST],
       [{ type: "askwell:close" }, HOST],
       [{ type: "askwell:unread", count: 2 }, HOST],
       [{ type: "askwell:resize", height: 400 }, HOST],
+    ]);
+  });
+
+  it("answers each parent init from the stored origin with askwell:ready, there only", () => {
+    const { win, parent, deliver } = framed();
+    createHostBridge(win);
+    deliver({ type: "askwell:init" });
+    // A loader retry that crossed our first ready.
+    deliver({ type: "askwell:init" });
+    // Another origin can't get a ready (or redirect us).
+    deliver({ type: "askwell:init" }, { origin: "https://evil.test" });
+    expect(parent.postMessage.mock.calls).toEqual([
+      [{ type: "askwell:ready" }, HOST],
+      [{ type: "askwell:ready" }, HOST],
     ]);
   });
 
@@ -45,6 +67,7 @@ describe("createHostBridge", () => {
     deliver({ type: "askwell:init" }, { source: null });
     expect(bridge.hostOrigin()).toBeNull();
     bridge.send({ type: "askwell:close" });
+    // Not even a ready.
     expect(parent.postMessage).not.toHaveBeenCalled();
   });
 

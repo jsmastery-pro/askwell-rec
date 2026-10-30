@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Input } from "../ui";
 import { cn } from "../ui/cn";
 import { friendlyError, sendMessage } from "./chat-client";
-import { createHostBridge, type HostBridge } from "./host-bridge";
+import { hostBridge } from "./host-bridge";
 import { getVisitorId } from "./visitor-id";
 
 type ChatMessage = { id: string; role: MessageRole; body: string };
@@ -25,25 +25,18 @@ export function EmbedPanel({ publicKey, config }: EmbedPanelProps) {
   const [typing, setTyping] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const conversationId = useRef<string | undefined>(undefined);
-  const bridge = useRef<HostBridge | null>(null);
   const unread = useRef(0);
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const hostBridge = createHostBridge();
-    bridge.current = hostBridge;
     // Focus means the visitor is looking at the panel: nothing is unread.
     const onFocus = () => {
       if (unread.current === 0) return;
       unread.current = 0;
-      hostBridge.send({ type: "askwell:unread", count: 0 });
+      hostBridge?.send({ type: "askwell:unread", count: 0 });
     };
     window.addEventListener("focus", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      hostBridge.dispose();
-      bridge.current = null;
-    };
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   useEffect(() => {
@@ -52,7 +45,7 @@ export function EmbedPanel({ publicKey, config }: EmbedPanelProps) {
 
   const close = () => {
     unread.current = 0;
-    bridge.current?.send({ type: "askwell:close" });
+    hostBridge?.send({ type: "askwell:close" });
   };
 
   const message = draft.trim();
@@ -83,7 +76,7 @@ export function EmbedPanel({ publicKey, config }: EmbedPanelProps) {
       // A reply that lands while the panel isn't focused counts as unread on the button.
       if (!document.hasFocus()) {
         unread.current += 1;
-        bridge.current?.send({ type: "askwell:unread", count: unread.current });
+        hostBridge?.send({ type: "askwell:unread", count: unread.current });
       }
     } catch (error) {
       setNotice(friendlyError(error));
