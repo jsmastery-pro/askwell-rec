@@ -61,6 +61,11 @@ test("1. the button appears inside a shadow root", async ({ page }) => {
 });
 
 test("2–4. open the panel, get a reply after the typing state, close it", async ({ page }) => {
+  // The panel uses nothing from Clerk, so customer pages must never load it (§9).
+  const clerkRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/clerk/i.test(new URL(request.url()).hostname)) clerkRequests.push(request.url());
+  });
   await openHostPage(page);
   await widgetButton(page).click();
 
@@ -91,6 +96,7 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   await panel(page).getByRole("button", { name: "Close chat" }).click();
   await expect(frame).toBeHidden();
   await expect(widgetButton(page)).toHaveAttribute("aria-expanded", "false");
+  expect(clerkRequests).toEqual([]);
 });
 
 test("5. a bad key renders no button", async ({ page }) => {
