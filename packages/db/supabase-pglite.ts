@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite, type Transaction } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { vector } from "@electric-sql/pglite-pgvector";
 
 export type SupabaseRole = "anon" | "authenticated" | "service_role";
@@ -50,11 +51,11 @@ export type CreateTestDbOptions = {
   migrationsDir?: string;
 };
 
-/** Boots pglite with pgvector and Supabase's roles, then applies every migration in filename order. */
+/** Boots pglite with pgvector, pgcrypto and Supabase's roles, then applies every migration in filename order. */
 export async function createTestDb({
   migrationsDir = DEFAULT_MIGRATIONS_DIR,
 }: CreateTestDbOptions = {}) {
-  const db = await PGlite.create({ extensions: { vector } });
+  const db = await PGlite.create({ extensions: { vector, pgcrypto } });
   await db.exec(SUPABASE_BOOTSTRAP);
 
   const files = (await readdir(migrationsDir)).filter((name) => name.endsWith(".sql")).sort();
