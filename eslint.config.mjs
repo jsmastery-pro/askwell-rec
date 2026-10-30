@@ -15,6 +15,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/next-env.d.ts",
       "packages/db/types.ts",
+      "apps/web/public/widget.js",
     ],
   },
   js.configs.recommended,

@@ -1,2 +1,4 @@
 next-env.d.ts
 *.tsbuildinfo
+# Built from apps/widget by `pnpm run widget` (predev, prebuild)
+public/widget.js

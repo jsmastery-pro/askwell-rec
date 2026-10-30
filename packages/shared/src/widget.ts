@@ -1,20 +1,19 @@
 import { z } from "zod";
+import {
+  HEX_COLOR_PATTERN,
+  WIDGET_ANIMATIONS,
+  WIDGET_HEADER_TEXT_MAX_LENGTH,
+  WIDGET_LABEL_MAX_LENGTH,
+  WIDGET_POSITIONS,
+} from "./widget-options";
 
-export const WIDGET_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"] as const;
 export const WidgetPositionSchema = z.enum(WIDGET_POSITIONS);
-export type WidgetPosition = z.infer<typeof WidgetPositionSchema>;
-
-export const WIDGET_ANIMATIONS = ["fade", "slide", "scale"] as const;
 export const WidgetAnimationSchema = z.enum(WIDGET_ANIMATIONS);
-export type WidgetAnimation = z.infer<typeof WidgetAnimationSchema>;
-
-export const WIDGET_LABEL_MAX_LENGTH = 40;
-export const WIDGET_HEADER_TEXT_MAX_LENGTH = 60;
 
 /** `#rrggbb` */
 export const HexColorSchema = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex color like #000000");
+  .regex(HEX_COLOR_PATTERN, "Expected a hex color like #000000");
 
 export const WidgetConfigSchema = z.object({
   buttonColor: HexColorSchema,
