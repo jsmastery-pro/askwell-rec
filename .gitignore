@@ -18,3 +18,7 @@ coverage/
 # Agent / hosting
 ROLE.md
 .vercel
+
+# Playwright (pnpm e2e)
+test-results/
+playwright-report/

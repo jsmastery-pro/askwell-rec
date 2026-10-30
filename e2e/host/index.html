@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E2E host page</title>
+  </head>
+  <body>
+    <!-- A plain customer page on another origin: no framework, no styles of ours. -->
+    <h1>Customer site</h1>
+    <p>The widget's button should appear in the corner.</p>
+
+    <!-- The install snippet. host-server.mjs fills in the app URL and key from env per request. -->
+    <script src="{APP_URL}/widget.js" data-key="{KEY}" async></script>
+  </body>
+</html>
