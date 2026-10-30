@@ -72,12 +72,15 @@ export async function mount(script: Element | null): Promise<HTMLElement | null>
   if (appOrigin === "null") return null;
 
   const config = await loadConfig(appOrigin, key);
-  if (!config || document.querySelector(`[${HOST_ATTRIBUTE}]`)) return null;
+  if (!config) return null;
   if (document.readyState === "loading") {
     await new Promise((resolve) =>
       document.addEventListener("DOMContentLoaded", resolve, { once: true }),
     );
   }
+  // After the last await: the check and the (synchronous) render can't interleave with a
+  // second copy of the script, so the page gets one widget.
+  if (document.querySelector(`[${HOST_ATTRIBUTE}]`)) return null;
   return render(appOrigin, key, config);
 }
 
@@ -158,6 +161,8 @@ function render(appOrigin: string, key: string, config: LoaderConfig): HTMLEleme
         iframe.style.height = `${Math.round(message.height)}px`;
         break;
       case "askwell:unread":
+        // The panel can't tell it's hidden, so the loader decides: count only while closed.
+        if (open) break;
         unread = message.count;
         showBadge();
         break;

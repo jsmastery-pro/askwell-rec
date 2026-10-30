@@ -145,6 +145,27 @@ describe("mount: script and config", () => {
     expect(await mount(script())).toBeNull();
     expect(document.querySelectorAll("[data-askwell]")).toHaveLength(1);
   });
+
+  it("mounts once when two copies load at the same time", async () => {
+    fetchMock.mockImplementation(async () => Response.json({ config: CONFIG }));
+    const hosts = await Promise.all([mount(script()), mount(script())]);
+    expect(hosts.filter(Boolean)).toHaveLength(1);
+    expect(document.querySelectorAll("[data-askwell]")).toHaveLength(1);
+  });
+
+  it("mounts once when two copies wait for DOMContentLoaded", async () => {
+    fetchMock.mockImplementation(async () => Response.json({ config: CONFIG }));
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const both = Promise.all([mount(script()), mount(script())]);
+    // Let both fetches finish, so both are parked on DOMContentLoaded.
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector("[data-askwell]")).toBeNull();
+
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+    expect((await both).filter(Boolean)).toHaveLength(1);
+    expect(document.querySelectorAll("[data-askwell]")).toHaveLength(1);
+  });
 });
 
 describe("parseConfig", () => {
@@ -262,6 +283,18 @@ describe("panel and messages", () => {
     expect(badge.hidden).toBe(true);
 
     post({ type: "askwell:close" }, { source: iframe.contentWindow });
+    expect(badge.hidden).toBe(true);
+  });
+
+  it("ignores askwell:unread while open, so no stale badge after closing", async () => {
+    const { root, button, badge } = await mounted();
+    const iframe = await openPanel(button, root);
+    post({ type: "askwell:unread", count: 4 }, { source: iframe.contentWindow });
+    post({ type: "askwell:close" }, { source: iframe.contentWindow });
+    expect(badge.hidden).toBe(true);
+
+    button.click();
+    button.click();
     expect(badge.hidden).toBe(true);
   });
 
