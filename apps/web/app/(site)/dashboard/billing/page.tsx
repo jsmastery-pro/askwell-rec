@@ -1,4 +1,4 @@
-import { EmptyState } from "../../../components/ui";
+import { EmptyState } from "../../../../components/ui";
 
 export default function BillingPage() {
   return (

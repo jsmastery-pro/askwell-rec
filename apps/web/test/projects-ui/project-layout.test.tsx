@@ -22,11 +22,12 @@ vi.mock("next/navigation", () => ({
 const getOwnedProject = vi.hoisted(() => vi.fn<(id: string) => Promise<typeof PROJECT | null>>());
 vi.mock("../../lib/projects", () => ({ getOwnedProject }));
 
-const { default: ProjectLayout } = await import("../../app/dashboard/projects/[id]/layout");
-const { default: ProjectPage } = await import("../../app/dashboard/projects/[id]/page");
-const { default: ProjectNotFound } = await import("../../app/dashboard/projects/[id]/not-found");
-const { default: Loading } = await import("../../app/dashboard/projects/[id]/loading");
-const { default: ProjectError } = await import("../../app/dashboard/projects/[id]/error");
+const { default: ProjectLayout } = await import("../../app/(site)/dashboard/projects/[id]/layout");
+const { default: ProjectPage } = await import("../../app/(site)/dashboard/projects/[id]/page");
+const { default: ProjectNotFound } =
+  await import("../../app/(site)/dashboard/projects/[id]/not-found");
+const { default: Loading } = await import("../../app/(site)/dashboard/projects/[id]/loading");
+const { default: ProjectError } = await import("../../app/(site)/dashboard/projects/[id]/error");
 
 const layout = (id: string) =>
   ProjectLayout({ children: <p>Tab body</p>, params: Promise.resolve({ id }) });

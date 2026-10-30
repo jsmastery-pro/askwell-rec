@@ -1,9 +1,9 @@
 import { IdParamsSchema } from "@askwell/shared";
 import { notFound } from "next/navigation";
-import { CopySnippet } from "../../../../../components/install/CopySnippet";
-import { getAppUrl } from "../../../../../lib/app-url";
-import { buildInstallSnippet } from "../../../../../lib/install-snippet";
-import { getOwnedProject } from "../../../../../lib/projects";
+import { CopySnippet } from "../../../../../../components/install/CopySnippet";
+import { getAppUrl } from "../../../../../../lib/app-url";
+import { buildInstallSnippet } from "../../../../../../lib/install-snippet";
+import { getOwnedProject } from "../../../../../../lib/projects";
 
 const STEPS = [
   "Copy the tag below.",

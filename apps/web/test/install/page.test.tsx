@@ -14,7 +14,8 @@ vi.mock("next/navigation", () => ({ notFound }));
 const getOwnedProject = vi.hoisted(() => vi.fn<(id: string) => Promise<typeof PROJECT | null>>());
 vi.mock("../../lib/projects", () => ({ getOwnedProject }));
 
-const { default: InstallPage } = await import("../../app/dashboard/projects/[id]/install/page");
+const { default: InstallPage } =
+  await import("../../app/(site)/dashboard/projects/[id]/install/page");
 
 const render = async (id: string) =>
   renderToStaticMarkup(

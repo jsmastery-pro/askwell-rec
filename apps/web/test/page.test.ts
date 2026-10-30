@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { APP_NAME } from "@askwell/shared";
-import Home from "../app/page";
+import Home from "../app/(site)/page";
 
 describe("home page", () => {
   const html = renderToStaticMarkup(createElement(Home));

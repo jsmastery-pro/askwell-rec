@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({ redirect, usePathname: () => "/dashboard" })
 vi.mock("@clerk/nextjs", () => ({ UserButton: () => null }));
 vi.mock("../../lib/accounts", () => ({ ensureAccount }));
 
-import DashboardLayout from "../../app/dashboard/layout";
+import DashboardLayout from "../../app/(site)/dashboard/layout";
 
 describe("DashboardLayout account row", () => {
   beforeEach(() => {

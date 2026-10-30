@@ -14,7 +14,7 @@ vi.mock("../../lib/supabase/owner", async () => {
   return { createOwnerClient: () => stubClient(ownerFetch) };
 });
 
-const { default: ProjectsPage } = await import("../../app/dashboard/page");
+const { default: ProjectsPage } = await import("../../app/(site)/dashboard/page");
 
 /** Answers the page's two reads: the project list and the owner's account row. */
 function respond(projects: object[], plan: string | null = "free") {

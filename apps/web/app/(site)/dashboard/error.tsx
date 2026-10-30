@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, ErrorState } from "../../components/ui";
+import { Button, ErrorState } from "../../../components/ui";
 
 export default function DashboardError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {

@@ -27,6 +27,15 @@ export function EmbedPanel({ publicKey, config }: EmbedPanelProps) {
   const conversationId = useRef<string | undefined>(undefined);
   const unread = useRef(0);
   const list = useRef<HTMLDivElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+
+  // The input is server-rendered, so a visitor can type before React hydrates. React keeps that
+  // text in the DOM but not in `draft`, which would leave Send off until the next keystroke.
+  useEffect(() => {
+    const field = form.current?.elements.namedItem("message");
+    const typed = field instanceof HTMLInputElement ? field.value : "";
+    if (typed) setDraft(typed.slice(0, MESSAGE_MAX_LENGTH));
+  }, []);
 
   useEffect(() => {
     // Focus means the visitor is looking at the panel: nothing is unread.
@@ -161,9 +170,10 @@ export function EmbedPanel({ publicKey, config }: EmbedPanelProps) {
         ) : null}
       </div>
 
-      <form onSubmit={onSubmit} className="border-t border-line px-3 py-3">
+      <form ref={form} onSubmit={onSubmit} className="border-t border-line px-3 py-3">
         <div className="flex items-center gap-2">
           <Input
+            name="message"
             aria-label="Message"
             placeholder="Type a message"
             value={draft}
