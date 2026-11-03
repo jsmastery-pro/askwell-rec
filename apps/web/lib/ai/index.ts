@@ -10,8 +10,11 @@ export const EMBEDDING_DIMENSIONS = 1536;
 /** OpenAI's small, cost-efficient chat model (the product owner chose small/mini). */
 export const CHAT_MODEL = "gpt-6-luna";
 
-/** Inputs per embeddings request. OpenAI allows 2,048; 100 keeps each request well under its token cap. */
-export const EMBED_BATCH_SIZE = 100;
+/**
+ * Inputs per embeddings request. OpenAI caps a request at 300,000 tokens and each input at
+ * 8,192, so 36 inputs (294,912 tokens) can never exceed the request cap.
+ */
+export const EMBED_BATCH_SIZE = 36;
 
 let client: OpenAI | undefined;
 
