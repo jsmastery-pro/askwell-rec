@@ -14,14 +14,17 @@
     "widget": "pnpm --filter @askwell/widget build && node -e \"const fs=require('node:fs');fs.mkdirSync('public',{recursive:true});fs.copyFileSync('../widget/dist/widget.js','public/widget.js')\""
   },
   "dependencies": {
+    "@arcjet/next": "^1.15.0",
     "@askwell/db": "workspace:*",
     "@askwell/shared": "workspace:*",
     "@clerk/nextjs": "^7.9.22",
     "@supabase/supabase-js": "^2.118.0",
     "next": "^16.4.3",
+    "openai": "^7.47.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "unpdf": "^1.9.1"
   },
   "devDependencies": {
     "@askwell/widget": "workspace:*",
