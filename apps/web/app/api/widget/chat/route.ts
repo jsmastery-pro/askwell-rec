@@ -27,6 +27,7 @@ const HEADERS = {
   "Cache-Control": "no-store",
 };
 
+/** An `{ error: { code, message } }` response with the code's status and the public headers. */
 function errorResponse(code: ApiErrorCode, message: string, headers?: Record<string, string>) {
   const body: ApiError = { error: { code, message } };
   return NextResponse.json(body, {
@@ -35,6 +36,7 @@ function errorResponse(code: ApiErrorCode, message: string, headers?: Record<str
   });
 }
 
+/** The JSON body as an object; `{}` when it isn't JSON or isn't an object. */
 async function readBody(request: NextRequest): Promise<Record<string, unknown>> {
   try {
     const body: unknown = await request.json();
@@ -44,6 +46,7 @@ async function readBody(request: NextRequest): Promise<Record<string, unknown>> 
   }
 }
 
+/** A field's value for Arcjet: the string, or `""`. */
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 /** project.md §6.6, steps 1–6 in order. */
