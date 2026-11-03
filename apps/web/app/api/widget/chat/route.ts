@@ -51,11 +51,18 @@ export async function POST(request: NextRequest) {
   const body = await readBody(request);
 
   // 1. Protect, before anything else: a malformed request still counts toward the rate limit.
-  // A refused message never reaches OpenAI.
-  const protection = await protectWidgetChat(request, {
-    publicKey: text(body.key),
-    message: text(body.message),
-  });
+  // A refused message never reaches OpenAI. Arcjet fails open on its own errors; a setup error
+  // (e.g. no ARCJET_KEY) fails closed.
+  let protection;
+  try {
+    protection = await protectWidgetChat(request, {
+      publicKey: text(body.key),
+      message: text(body.message),
+    });
+  } catch (error) {
+    console.error(error);
+    return errorResponse("internal", "Could not send the message.");
+  }
   if (protection.outcome === "rate_limited") {
     return errorResponse(
       "rate_limited",

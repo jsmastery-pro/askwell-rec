@@ -180,6 +180,13 @@ describe("POST /api/widget/chat", () => {
       expectNothingCountedOrAnswered();
     });
 
+    it("Arcjet setup error (e.g. no ARCJET_KEY) → 500 internal; nothing read, counted or answered", async () => {
+      mocks.protect.mockRejectedValueOnce(new Error("arcjet: missing env ARCJET_KEY"));
+      await expectError(await post(BODY), 500, "internal");
+      expect(pg.calls).toEqual([]);
+      expectNothingCountedOrAnswered();
+    });
+
     it("runs before validation, so a malformed request still counts toward the limit", async () => {
       await post("not json");
       expect(mocks.protect).toHaveBeenCalledWith(expect.any(Request), {
