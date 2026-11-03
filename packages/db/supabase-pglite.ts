@@ -34,6 +34,17 @@ const SUPABASE_BOOTSTRAP = `
       )::jsonb
     $$;
 
+  -- Stub of Supabase's storage schema: the storage.buckets columns migrations write, with the
+  -- same names and types, so a typo in a bucket insert fails here too.
+  create schema storage;
+  create table storage.buckets (
+    id text primary key,
+    name text not null,
+    public boolean default false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+  );
+
   -- Supabase's default grants on public: API roles get everything unless a migration revokes it.
   grant usage, create on schema public to anon, authenticated, service_role;
   grant all on all tables in schema public to anon, authenticated, service_role;
