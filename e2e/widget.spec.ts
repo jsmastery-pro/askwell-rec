@@ -6,6 +6,8 @@ const APP_URL = process.env.E2E_APP_URL?.replace(/\/+$/, "") ?? "";
 const APP_ORIGIN = APP_URL ? new URL(APP_URL).origin : "";
 // Well-formed but unknown: the config route answers 404.
 const UNKNOWN_KEY = "pk_e2e_placeholder_unknown_key";
+const FAKE_CONVERSATION_ID = "0b8f3c55-2f1d-4f3e-8f53-5b2a7b0b4a11";
+const FAKE_REPLY = "A fake reply from the e2e chat route.";
 
 test.beforeAll(() => {
   if (!APP_URL || !process.env.E2E_PUBLIC_KEY) {
@@ -28,6 +30,20 @@ test.beforeEach(async ({ context }) => {
       }),
   );
 });
+
+/**
+ * Answers `POST /api/widget/chat` with a fake reply after a short delay (so the typing state
+ * shows), so CI never calls OpenAI. Returns the JSON bodies the panel posted.
+ */
+async function fakeChatRoute(page: Page) {
+  const posted: Array<Record<string, unknown>> = [];
+  await page.route(`${APP_ORIGIN}/api/widget/chat`, async (route) => {
+    posted.push(route.request().postDataJSON());
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fulfill({ json: { conversationId: FAKE_CONVERSATION_ID, reply: FAKE_REPLY } });
+  });
+  return posted;
+}
 
 const host = (page: Page) => page.locator("[data-askwell]");
 const widgetButton = (page: Page) => host(page).locator("button.b");
@@ -66,6 +82,7 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   page.on("request", (request) => {
     if (/clerk/i.test(new URL(request.url()).hostname)) clerkRequests.push(request.url());
   });
+  const posted = await fakeChatRoute(page);
   await openHostPage(page);
   await widgetButton(page).click();
 
@@ -78,9 +95,10 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   expect(src.searchParams.get("key")).toBe(process.env.E2E_PUBLIC_KEY);
   await expect(panel(page).getByRole("heading", { level: 1 })).toBeVisible();
 
-  // 3. Type a message → typing state → reply.
+  // 3. Type a message → typing state → reply. The chat route is faked (no OpenAI in CI).
   const send = panel(page).getByRole("button", { name: "Send" });
-  await panel(page).getByRole("textbox", { name: "Message" }).fill("Hello from the e2e host page");
+  const input = panel(page).getByRole("textbox", { name: "Message" });
+  await input.fill("Hello from the e2e host page");
   await expect(send).toBeEnabled();
   await send.click();
   await expect(panel(page).locator('[data-role="visitor"]')).toHaveText(
@@ -88,9 +106,21 @@ test("2–4. open the panel, get a reply after the typing state, close it", asyn
   );
   await expect(panel(page).getByRole("status", { name: "Typing" })).toBeVisible();
   const reply = panel(page).locator('[data-role="bot"]');
-  await expect(reply).toHaveCount(1, { timeout: 15_000 });
-  await expect(reply).not.toHaveText("");
+  await expect(reply).toHaveText([FAKE_REPLY], { timeout: 15_000 });
   await expect(panel(page).getByRole("status", { name: "Typing" })).toHaveCount(0);
+
+  // A second message reuses the conversation the route returned.
+  await input.fill("And a follow-up");
+  await send.click();
+  await expect(reply).toHaveText([FAKE_REPLY, FAKE_REPLY]);
+  expect(posted).toEqual([
+    expect.objectContaining({
+      key: process.env.E2E_PUBLIC_KEY,
+      message: "Hello from the e2e host page",
+    }),
+    expect.objectContaining({ message: "And a follow-up", conversationId: FAKE_CONVERSATION_ID }),
+  ]);
+  expect(posted[0]).not.toHaveProperty("conversationId");
 
   // 4. Close from the panel header → askwell:close over postMessage → the iframe hides.
   await panel(page).getByRole("button", { name: "Close chat" }).click();

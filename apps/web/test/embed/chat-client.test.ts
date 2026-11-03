@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  CHAT_ENDPOINT,
   ChatRequestError,
-  MOCK_REPLY,
-  MOCK_REPLY_DELAY_MS,
   friendlyError,
   sendMessage,
 } from "../../components/embed/chat-client";
@@ -12,46 +11,72 @@ const REQUEST = {
   visitorId: "6f1c2a1e-6b0e-4c3a-9a43-1f7f3b1b9e10",
   message: "Hi there",
 };
+const CONVERSATION_ID = "0b8f3c55-2f1d-4f3e-8f53-5b2a7b0b4a11";
 
-describe("sendMessage (Phase 2 mock)", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+const fetchMock = vi.fn<typeof fetch>();
+
+const apiError = (code: string, status: number) =>
+  Response.json({ error: { code, message: "server detail" } }, { status });
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("sendMessage", () => {
+  it("posts the request as JSON to the same-origin chat route and returns the reply", async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ conversationId: CONVERSATION_ID, reply: "We ship in 3 days." }),
+    );
+
+    const response = await sendMessage({ ...REQUEST, conversationId: CONVERSATION_ID });
+
+    expect(response).toEqual({ conversationId: CONVERSATION_ID, reply: "We ship in 3 days." });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(CHAT_ENDPOINT);
+    expect(CHAT_ENDPOINT).toBe("/api/widget/chat");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({ ...REQUEST, conversationId: CONVERSATION_ID });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("replies after ~800 ms with a canned reply and a new conversation ID", async () => {
-    let settled = false;
-    const pending = sendMessage(REQUEST).then((response) => {
-      settled = true;
-      return response;
-    });
-    await vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS - 1);
-    expect(settled).toBe(false);
-
-    await vi.advanceTimersByTimeAsync(1);
-    const response = await pending;
-    expect(response.reply).toBe(MOCK_REPLY);
-    expect(response.conversationId).toMatch(/^[0-9a-f-]{36}$/);
-  });
-
-  it("keeps an existing conversation ID", async () => {
-    const conversationId = "0b8f3c55-2f1d-4f3e-8f53-5b2a7b0b4a11";
-    const pending = sendMessage({ ...REQUEST, conversationId });
-    await vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS);
-    expect((await pending).conversationId).toBe(conversationId);
+  it("omits conversationId on the first message", async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ conversationId: CONVERSATION_ID, reply: "Hi" }),
+    );
+    await sendMessage(REQUEST);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toEqual(REQUEST);
   });
 
   it.each([
-    ["/simulate rate_limited", "rate_limited"],
-    ["/simulate quota_exceeded", "quota_exceeded"],
-  ])("%s → a %s error after the delay", async (message, code) => {
-    const pending = sendMessage({ ...REQUEST, message });
-    const assertion = expect(pending).rejects.toMatchObject({ code });
-    await vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS);
-    await assertion;
+    ["rate_limited", 429],
+    ["quota_exceeded", 429],
+    ["blocked", 403],
+    ["not_found", 404],
+    ["internal", 500],
+  ])("an API %s error rejects with that code", async (code, status) => {
+    fetchMock.mockResolvedValueOnce(apiError(code, status));
+    await expect(sendMessage(REQUEST)).rejects.toMatchObject({ code });
+  });
+
+  it("a network error rejects as internal", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await expect(sendMessage(REQUEST)).rejects.toMatchObject({ code: "internal" });
+  });
+
+  it.each([
+    ["a non-JSON error body", new Response("<html>502</html>", { status: 502 })],
+    ["a 200 that isn't a chat response", Response.json({ reply: 42 })],
+    ["a 200 with a bad conversationId", Response.json({ conversationId: "x", reply: "Hi" })],
+    ["a 200 that isn't JSON", new Response("ok")],
+  ])("%s rejects as internal", async (_name, response) => {
+    fetchMock.mockResolvedValueOnce(response);
+    await expect(sendMessage(REQUEST)).rejects.toMatchObject({ code: "internal" });
   });
 
   it.each([
@@ -59,15 +84,21 @@ describe("sendMessage (Phase 2 mock)", () => {
     ["a message over MESSAGE_MAX_LENGTH", { ...REQUEST, message: "x".repeat(1001) }],
     ["a bad visitor ID", { ...REQUEST, visitorId: "not-a-uuid" }],
     ["a bad key", { ...REQUEST, key: "nope" }],
-  ])("rejects %s as invalid_input without waiting", async (_name, request) => {
+  ])("rejects %s as invalid_input without a request", async (_name, request) => {
     await expect(sendMessage(request)).rejects.toMatchObject({ code: "invalid_input" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
 describe("friendlyError", () => {
-  it("has a friendly line for rate_limited and quota_exceeded", () => {
-    expect(friendlyError(new ChatRequestError("rate_limited", "x"))).toMatch(/a little fast/);
-    expect(friendlyError(new ChatRequestError("quota_exceeded", "x"))).toMatch(/right now/);
+  it.each([
+    ["rate_limited", "You're sending messages too fast. Try again in a minute."],
+    ["quota_exceeded", "This assistant has reached its message limit for this month."],
+    ["blocked", "I can't help with that."],
+    ["internal", "Something went wrong. Please try again."],
+    ["not_found", "Something went wrong. Please try again."],
+  ] as const)("%s → %j", (code, text) => {
+    expect(friendlyError(new ChatRequestError(code, "x"))).toBe(text);
   });
 
   it("never shows the raw error", () => {

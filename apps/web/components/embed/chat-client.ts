@@ -1,11 +1,13 @@
 import {
+  ApiErrorSchema,
   WidgetChatRequestSchema,
+  WidgetChatResponseSchema,
   type ApiErrorCode,
   type WidgetChatRequest,
   type WidgetChatResponse,
 } from "@askwell/shared";
 
-/** A failed chat request, with the API's error code. Phase 3's real client throws the same. */
+/** A failed chat request, with the API's error code. */
 export class ChatRequestError extends Error {
   constructor(
     readonly code: ApiErrorCode,
@@ -16,36 +18,46 @@ export class ChatRequestError extends Error {
   }
 }
 
-export const MOCK_REPLY_DELAY_MS = 800;
+/** Same origin: the panel runs on the app, inside the widget's iframe. */
+export const CHAT_ENDPOINT = "/api/widget/chat";
 
-export const MOCK_REPLY =
-  "Thanks for your message! This chat is in preview, so this is a sample reply. Real answers are coming soon.";
-
-/** Send one of these as the message to see the panel's error states (Phase 2 only). */
-export const SIMULATED_ERRORS = {
-  "/simulate rate_limited": "rate_limited",
-  "/simulate quota_exceeded": "quota_exceeded",
-} as const satisfies Record<string, ApiErrorCode>;
-
-function isSimulatedError(message: string): message is keyof typeof SIMULATED_ERRORS {
-  return Object.hasOwn(SIMULATED_ERRORS, message);
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Phase 2 mock of `POST /api/widget/chat`: waits ~800 ms, then returns a canned reply.
- * Phase 3 replaces only this function's body with the real request.
+ * `POST /api/widget/chat`. Resolves with the validated reply; anything else (an API error,
+ * an unexpected body, a network failure) rejects with a `ChatRequestError`.
  */
 export async function sendMessage(request: WidgetChatRequest): Promise<WidgetChatResponse> {
   const parsed = WidgetChatRequestSchema.safeParse(request);
   if (!parsed.success) throw new ChatRequestError("invalid_input", "Invalid message.");
 
-  await new Promise((resolve) => setTimeout(resolve, MOCK_REPLY_DELAY_MS));
-
-  const { message, conversationId } = parsed.data;
-  if (isSimulatedError(message)) {
-    throw new ChatRequestError(SIMULATED_ERRORS[message], "Simulated error.");
+  let response: Response;
+  try {
+    response = await fetch(CHAT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
+  } catch {
+    throw new ChatRequestError("internal", "Network error.");
   }
-  return { conversationId: conversationId ?? crypto.randomUUID(), reply: MOCK_REPLY };
+
+  const body = await readJson(response);
+  if (!response.ok) {
+    const error = ApiErrorSchema.safeParse(body);
+    if (error.success) throw new ChatRequestError(error.data.error.code, error.data.error.message);
+    throw new ChatRequestError("internal", `Unexpected ${response.status} response.`);
+  }
+
+  const reply = WidgetChatResponseSchema.safeParse(body);
+  if (!reply.success) throw new ChatRequestError("internal", "Unexpected response.");
+  return reply.data;
 }
 
 /** What the visitor sees for a failed request. Never the raw server message. */
@@ -53,9 +65,11 @@ export function friendlyError(error: unknown): string {
   const code = error instanceof ChatRequestError ? error.code : "internal";
   switch (code) {
     case "rate_limited":
-      return "You're sending messages a little fast. Wait a moment, then try again.";
+      return "You're sending messages too fast. Try again in a minute.";
     case "quota_exceeded":
-      return "This chat can't take new messages right now. Please try again later.";
+      return "This assistant has reached its message limit for this month.";
+    case "blocked":
+      return "I can't help with that.";
     default:
       return "Something went wrong. Please try again.";
   }
