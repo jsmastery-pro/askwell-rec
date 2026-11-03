@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { PGlite, Transaction } from "@electric-sql/pglite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { KNOWLEDGE_FILE_MIME_TYPES, MAX_KNOWLEDGE_FILE_BYTES, PLAN_LIMITS } from "../../shared/src";
@@ -595,5 +596,22 @@ describe("catalog", () => {
       [FUNCTIONS.match_chunks],
     );
     expect(rows[0]!.proconfig).toContain("hnsw.iterative_scan=strict_order");
+  });
+});
+
+// pglite runs migrations as a superuser, so it can't catch this; Supabase's postgres role isn't
+// one. Storing hnsw.iterative_scan in match_chunks needs pgvector loaded in the session first.
+describe("migration file", () => {
+  it("loads pgvector before creating match_chunks", async () => {
+    const sql = await readFile(
+      new URL(
+        "../../../supabase/migrations/20261103114934_knowledge_chat_functions.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const load = sql.search(/^select '\[1\]'::extensions\.vector;$/m);
+    expect(load).toBeGreaterThan(-1);
+    expect(load).toBeLessThan(sql.indexOf("create function public.match_chunks("));
   });
 });

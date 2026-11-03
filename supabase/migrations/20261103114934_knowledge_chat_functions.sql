@@ -163,6 +163,12 @@ $$;
 -- strict_order makes the HNSW scan keep going until enough rows pass the project filter;
 -- without it, a small project among many can get fewer matches than exist, or none.
 
+-- Loads pgvector into this session first. Until it loads, hnsw.iterative_scan is an unknown
+-- parameter, and only a superuser may store an unknown parameter in a function's SET clause:
+-- Supabase's postgres role gets 42501 "permission denied to set parameter". Must stay above
+-- match_chunks (packages/db/test checks the order).
+select '[1]'::extensions.vector;
+
 create function public.match_chunks(p_project_id uuid, p_embedding extensions.vector, p_count integer)
   returns table (content text, similarity double precision)
   language sql
