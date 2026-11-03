@@ -4,7 +4,6 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EmbedPanel as EmbedPanelComponent } from "../../components/embed/EmbedPanel";
-import { MOCK_REPLY, MOCK_REPLY_DELAY_MS } from "../../components/embed/chat-client";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -19,6 +18,19 @@ let root: Root;
 // Stands in for the host page: jsdom only accepts a Window or MessagePort as a message `source`.
 let parent: MessagePort;
 let parentPost: ReturnType<typeof vi.fn>;
+let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>;
+
+const CONVERSATION_ID = "0b8f3c55-2f1d-4f3e-8f53-5b2a7b0b4a11";
+const REPLY = "Yes, we ship to Canada in 5 days.";
+const chatReply = (reply = REPLY) => Response.json({ conversationId: CONVERSATION_ID, reply });
+const apiError = (code: string, status: number) =>
+  Response.json({ error: { code, message: "server detail" } }, { status });
+
+/** Lets the mocked request settle and React re-render. */
+const settle = () => act(async () => {});
+
+/** The JSON bodies the panel posted to the chat route. */
+const posted = () => fetchMock.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
 
 async function render(config = { headerText: "How can we help?", showBadge: true }) {
   await act(async () => root.render(<EmbedPanel publicKey={KEY} config={config} />));
@@ -61,7 +73,8 @@ beforeEach(async () => {
   ({ EmbedPanel } = await import("../../components/embed/EmbedPanel"));
   const { hostBridge } = await import("../../components/embed/host-bridge");
   disposeBridge = () => hostBridge?.dispose();
-  vi.useFakeTimers();
+  fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => chatReply());
+  vi.stubGlobal("fetch", fetchMock);
   parent = new MessageChannel().port1;
   parentPost = vi.fn();
   parent.postMessage = parentPost as MessagePort["postMessage"];
@@ -79,7 +92,7 @@ afterEach(async () => {
   container.remove();
   Object.defineProperty(window, "parent", { configurable: true, get: () => window });
   vi.restoreAllMocks();
-  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("EmbedPanel", () => {
@@ -96,43 +109,89 @@ describe("EmbedPanel", () => {
     expect(container.innerHTML).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
-  it("shows the typing state, then the mock reply", async () => {
+  it("shows the typing state, then the reply as plain text", async () => {
+    let respond!: (response: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => (respond = resolve)));
     await render();
     await send("Do you ship to Canada?");
     expect($('[role="status"][aria-label="Typing"]')).not.toBeNull();
     expect(messages()).toEqual([{ role: "visitor", text: "Do you ship to Canada?" }]);
     expect($<HTMLButtonElement>('button[aria-label="Send"]').disabled).toBe(true);
 
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
+    await act(async () => respond(chatReply()));
     expect(container.querySelector('[aria-label="Typing"]')).toBeNull();
     expect(messages()).toEqual([
       { role: "visitor", text: "Do you ship to Canada?" },
-      { role: "bot", text: MOCK_REPLY },
+      { role: "bot", text: REPLY },
     ]);
+  });
+
+  it("renders a reply with HTML or Markdown in it as literal text", async () => {
+    fetchMock.mockResolvedValueOnce(chatReply("<b>bold</b> **star** <script>x()</script>"));
+    await render();
+    await send("hi");
+    await settle();
+    expect(messages()[1]).toEqual({
+      role: "bot",
+      text: "<b>bold</b> **star** <script>x()</script>",
+    });
+    expect(container.querySelector("b, strong, script")).toBeNull();
+  });
+
+  it("sends no conversationId first, then reuses the returned one", async () => {
+    await render();
+    await send("one");
+    await settle();
+    await send("two");
+    await settle();
+    const [first, second] = posted();
+    expect(first).not.toHaveProperty("conversationId");
+    expect(first).toMatchObject({ key: KEY, message: "one" });
+    expect(second).toMatchObject({ key: KEY, message: "two", conversationId: CONVERSATION_ID });
+    expect(second.visitorId).toBe(first.visitorId);
   });
 
   it("stores a visitor ID and reuses it", async () => {
     await render();
     await send("one");
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
+    await settle();
     const id = window.localStorage.getItem("askwell:visitor-id");
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
     await send("two");
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
+    await settle();
     expect(window.localStorage.getItem("askwell:visitor-id")).toBe(id);
   });
 
-  it.each([
-    ["/simulate rate_limited", /a little fast/],
-    ["/simulate quota_exceeded", /can't take new messages/],
-  ])("%s shows a friendly message", async (message, text) => {
-    await render();
-    await send(message);
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
-    expect($('[role="alert"]').textContent).toMatch(text);
-    expect(messages().filter((m) => m.role === "bot")).toEqual([]);
-    expect(container.querySelector('[aria-label="Typing"]')).toBeNull();
-  });
+  it.each<[string, () => Promise<Response>, string]>([
+    [
+      "rate_limited",
+      async () => apiError("rate_limited", 429),
+      "You're sending messages too fast. Try again in a minute.",
+    ],
+    [
+      "quota_exceeded",
+      async () => apiError("quota_exceeded", 429),
+      "This assistant has reached its message limit for this month.",
+    ],
+    ["blocked", async () => apiError("blocked", 403), "I can't help with that."],
+    ["internal", async () => apiError("internal", 500), "Something went wrong. Please try again."],
+    [
+      "a network error",
+      () => Promise.reject(new TypeError("Failed to fetch")),
+      "Something went wrong. Please try again.",
+    ],
+  ])(
+    "%s shows its friendly message and keeps the visitor's message",
+    async (_name, respond, text) => {
+      fetchMock.mockImplementationOnce(respond);
+      await render();
+      await send("Where is my order?");
+      await settle();
+      expect($('[role="alert"]').textContent).toBe(text);
+      expect(messages()).toEqual([{ role: "visitor", text: "Where is my order?" }]);
+      expect(container.querySelector('[aria-label="Typing"]')).toBeNull();
+    },
+  );
 
   it("caps the input at MESSAGE_MAX_LENGTH", async () => {
     await render();
@@ -222,7 +281,7 @@ describe("EmbedPanel ↔ loader", () => {
     await init();
     vi.mocked(document.hasFocus).mockReturnValue(false);
     await send("hello");
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
+    await settle();
     expect(parentPost).toHaveBeenLastCalledWith({ type: "askwell:unread", count: 1 }, HOST);
 
     await act(async () => window.dispatchEvent(new Event("focus")));
@@ -233,7 +292,7 @@ describe("EmbedPanel ↔ loader", () => {
     await render();
     await init();
     await send("hello");
-    await act(async () => vi.advanceTimersByTimeAsync(MOCK_REPLY_DELAY_MS));
+    await settle();
     expect(parentPost.mock.calls).toEqual([[{ type: "askwell:ready" }, HOST]]);
   });
 });
