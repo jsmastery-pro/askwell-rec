@@ -9,7 +9,7 @@ type Tab = { label: string; segment: string; ready: boolean };
 // Later phases switch these on.
 export const PROJECT_TABS: readonly Tab[] = [
   { label: "Install", segment: "install", ready: true },
-  { label: "Knowledge", segment: "knowledge", ready: false },
+  { label: "Knowledge", segment: "knowledge", ready: true },
   { label: "Conversations", segment: "conversations", ready: false },
   { label: "Customize", segment: "customize", ready: false },
 ];

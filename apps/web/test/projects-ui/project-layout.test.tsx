@@ -87,9 +87,18 @@ describe("project tabs", () => {
     expect(html.match(/<a [^>]*>Install<\/a>/)?.[0]).not.toContain("aria-current");
   });
 
-  it("Knowledge, Conversations and Customize are disabled 'Soon' items, not links", async () => {
+  it("Knowledge is a link, marked current on its page", async () => {
+    nav.pathname = `/dashboard/projects/${PROJECT_ID}/knowledge`;
     const html = renderToStaticMarkup(await layout(PROJECT_ID));
-    for (const label of ["Knowledge", "Conversations", "Customize"]) {
+    const knowledge = html.match(/<a [^>]*>Knowledge<\/a>/)?.[0];
+    expect(knowledge).toContain(`href="/dashboard/projects/${PROJECT_ID}/knowledge"`);
+    expect(knowledge).toContain('aria-current="page"');
+    expect(html.match(/<a [^>]*>Install<\/a>/)?.[0]).not.toContain("aria-current");
+  });
+
+  it("Conversations and Customize are disabled 'Soon' items, not links", async () => {
+    const html = renderToStaticMarkup(await layout(PROJECT_ID));
+    for (const label of ["Conversations", "Customize"]) {
       expect(html).toMatch(
         new RegExp(`<span aria-disabled="true"[^>]*>${label}<span[^>]*>Soon</span>`),
       );
